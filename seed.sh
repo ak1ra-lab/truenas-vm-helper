@@ -5,11 +5,11 @@ REMOTE_DIR="nas:/mnt/apps/vm/images/${DISTRO}/"
 
 case "${DISTRO}" in
 debian | ubuntu)
-    pushd "${DISTRO}"
+    pushd "cloud-init/${DISTRO}"
 
     genisoimage -output seed.iso -input-charset utf8 -volid cidata -joliet -rock user-data meta-data
 
-    scp seed.iso "${REMOTE_DIR}" && rm -f ${DISTRO}.iso
+    scp seed.iso "${REMOTE_DIR}" && rm -f seed.iso
 
     popd
     ;;
