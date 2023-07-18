@@ -1,0 +1,22 @@
+#cloud-config
+resize_rootfs: True
+manage_etc_hosts: localhost
+
+chpasswd:
+  expire: False
+
+users:
+  - name: root
+    lock_passwd: False
+    # 'hashed_passwd' will be applied even if the user is pre-existing, 'passwd' will NOT.
+    # echo ubuntu | mkpasswd --method=SHA-512 --rounds=4096 --stdin
+    # mkpasswd 来自 whois 这个 package
+    hashed_passwd: $6$rounds=4096$wjUwD6igCOIKNyCE$pZJrNvHHiNgfMuWdCJzVsqfgjRXJi0d9A7vonXmnFV8htPl6ezgXwko4pV1gy.48zzv.NmFhjImcLCywOREmu.
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMwjXu47ceEGERvpo2nCceJFhW8hCiPW6vm/bYHgue/N github.com/ak1ra-komj
+  - name: ubuntu
+    lock_passwd: False
+    hashed_passwd: $6$rounds=4096$wjUwD6igCOIKNyCE$pZJrNvHHiNgfMuWdCJzVsqfgjRXJi0d9A7vonXmnFV8htPl6ezgXwko4pV1gy.48zzv.NmFhjImcLCywOREmu.
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMwjXu47ceEGERvpo2nCceJFhW8hCiPW6vm/bYHgue/N github.com/ak1ra-komj
