@@ -17,8 +17,8 @@
 
 ### `/sbin/growpart: grep: not found`
 
-这个问题是在尝试启动 `debian-12-genericcloud-amd64-20230711-1438.raw` 这个镜像时,
-`grep`, `sed`, `rm` 这些基础命令都找不到不太可能, 怀疑是 `/` 文件系统挂载时出了什么问题,
+这个问题是在尝试启动 `debian-12-genericcloud-amd64-20230711-1438.raw` 这个镜像时发现的,
+`grep`, `sed`, `rm` 这些基础命令都找不到不太可能, 怀疑是 `/` 文件系统挂载时出了什么问题?
 
 ```
 Starting systemd-udevd version 252.6-1
@@ -68,7 +68,7 @@ Begin: Running /scripts/init-bottom ... done.
 
 ## Debian 11 (bullseye) 最近几次构建的 `generic` type 镜像都无法启动
 
-最初是发现 `debian-11-generic-amd64-20230515-1381.raw` 这个镜像出现 `segfault` 的错误, 系统无法启动, 进入 initramfs 命令行, 后续发现最近几次构建都无法启动
+最初是发现 `debian-11-generic-amd64-20230515-1381.raw` 这个镜像出现 `segfault` 的错误, 系统无法启动, 进入 initramfs 命令行, 后续发现最近几次构建都无法启动,
 
 ```
 [    0.609667] Run /init as init process
