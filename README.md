@@ -28,7 +28,7 @@ Debian cloud images GitLab repository: https://salsa.debian.org/cloud-team/debia
 * 创建虚拟机, 下载 cloud images 的 `.raw` 格式 `dd` 到虚拟机 DISK
     * TrueNAS 中的 DISK 设备可创建 ZVOL 直接使用
     * [Debian cloud images](https://cloud.debian.org/images/cloud/) 可下载 `.tar.xz` 格式镜像, 解压后就是 `.raw` 格式
-    * [Ubuntu cloud images]((https://cloud-images.ubuntu.com/)) 的 `.img` 格式实际上为 `.qcow2` 格式, 需要用 `qemu-img convert` 转换格式
+    * [Ubuntu cloud images](https://cloud-images.ubuntu.com/) 的 `.img` 格式实际上为 `.qcow2` 格式, 需要用 `qemu-img convert` 转换格式
         * `qemu-img convert -O raw input.img output.raw`
 * 将 `seed.iso` 挂载到虚拟机的 CDROM 设备上, 注意启动顺序需要在 DISK 之前
     * 上面给出的文章提到 CDROM 设备启动顺序需要在 DISK 之后可能有误?
