@@ -1,8 +1,8 @@
 #! /bin/bash
 # author: ak1ra
 # date: 2023-07-18
-# helper script to create vm on TrueNAS SCALE using Debian/Ubuntu cloud images
-# ref: https://blog.robertorosario.com/setting-up-a-vm-on-truenas-scale-using-cloud-init/
+# Helper script to create VM on TrueNAS SCALE using cloud-init with Debian/Ubuntu cloud images
+# Thanks-To: https://blog.robertorosario.com/setting-up-a-vm-on-truenas-scale-using-cloud-init/
 
 function prepare_vm_zvol() {
     zfs create -V 10GiB "${VM_ZVOL#/dev/zvol/}"
