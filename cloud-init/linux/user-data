@@ -9,13 +9,13 @@ users:
   - name: root
     lock_passwd: False
     # 'hashed_passwd' will be applied even if the user is pre-existing, 'passwd' will NOT.
-    # echo debian | mkpasswd --method=SHA-512 --rounds=4096 --stdin
-    hashed_passwd: $6$rounds=4096$hiBPoLsHZ4wNV3oO$.s/r/ySe/avsgPVgO2Q8EobtpncKF7CxW8Bk8SqLoLnh3jR5oHU2wG5mn/UrwoWkTua/pT0AP2mREusyH5veo1
+    # echo linux | mkpasswd --method=SHA-512 --rounds=4096 --stdin
+    hashed_passwd: $6$rounds=4096$GP.ppxOD7e1js9vP$IwESC9l56qbAtomTd9N5KCowTqKm7JTYSo.poYs2Swqzy3c9AU4CbQ/eiFkva3okbsARd0u/f54/iKqcUYodo0
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMwjXu47ceEGERvpo2nCceJFhW8hCiPW6vm/bYHgue/N github.com/ak1ra-komj
-  - name: debian
+  - name: linux
     lock_passwd: False
-    hashed_passwd: $6$rounds=4096$hiBPoLsHZ4wNV3oO$.s/r/ySe/avsgPVgO2Q8EobtpncKF7CxW8Bk8SqLoLnh3jR5oHU2wG5mn/UrwoWkTua/pT0AP2mREusyH5veo1
+    hashed_passwd: $6$rounds=4096$GP.ppxOD7e1js9vP$IwESC9l56qbAtomTd9N5KCowTqKm7JTYSo.poYs2Swqzy3c9AU4CbQ/eiFkva3okbsARd0u/f54/iKqcUYodo0
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMwjXu47ceEGERvpo2nCceJFhW8hCiPW6vm/bYHgue/N github.com/ak1ra-komj

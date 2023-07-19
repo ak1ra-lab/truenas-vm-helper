@@ -4,6 +4,36 @@
 # Helper script to create VM on TrueNAS SCALE using cloud-init with Debian/Ubuntu cloud images
 # Thanks-To: https://blog.robertorosario.com/setting-up-a-vm-on-truenas-scale-using-cloud-init/
 
+set -o errexit -o nounset
+
+function find_vm_distro() {
+    if echo "${VM_IMAGE}" | grep -qE '(debian|bullseye|bookworm|sid)'; then
+        local distro=debian
+    elif echo "${VM_IMAGE}" | grep -qE '(ubuntu|focal|jammy)'; then
+        local distro=ubuntu
+    else
+        local distro=linux
+    fi
+
+    echo "$distro"
+}
+
+function prepare_seed() {
+    # TrueNAS SCALE does not have `genisoimage` installed by default
+    # genisoimage -output seed.iso -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data
+    test -f "${VM_SEED}" && rm -f "${VM_SEED}"
+
+    truncate --size 2M ${VM_SEED}
+    mkfs.vfat -n CIDATA ${VM_SEED}
+
+    local mount_dir=$(mktemp -d)
+    mount -t vfat ${VM_SEED} ${mount_dir}
+    cp -v cloud-init/${VM_DISTRO}/{user-data,meta-data} ${mount_dir}
+
+    umount ${mount_dir}
+    rmdir -v ${mount_dir}
+}
+
 function prepare_vm_zvol() {
     zfs create -V 10GiB "${VM_ZVOL#/dev/zvol/}"
     dd if=${VM_IMAGE} of=${VM_ZVOL} bs=128M
@@ -34,7 +64,9 @@ function vm_create() {
 }
 
 function main() {
-    local VM_IMAGE_LIST=($(find ${VM_IMAGE_DIR} -type f -name '*.raw' | grep -vE 'genericcloud|nocloud' | sort))
+    local VM_IMAGE_LIST=(
+        $(find ${VM_IMAGE_DIR} -type f -name '*.raw' | grep -vE '(genericcloud|nocloud)' | sort)
+    )
 
     local VM_IMAGE=""
     while [ true ]; do
@@ -53,9 +85,6 @@ function main() {
         fi
     done
 
-    local VM_SEED="$(readlink -f $(dirname ${VM_IMAGE})/../../seed.iso)"
-    test -f "${VM_SEED}" || exit 1
-
     local VM_NAME=""
     local VM_NAME_SUFFIX=$(echo $(basename ${VM_IMAGE%.raw}) | sed -E -e 's/[.-]+/_/g')
     while [ true ]; do
@@ -71,17 +100,28 @@ function main() {
         fi
     done
 
-    local VM_ZVOL="/dev/zvol/${VM_ZVOL_DIR}/${VM_NAME}"
+    local VM_ZVOL="/dev/zvol/${VM_DATASET}/${VM_NAME}"
     if [ -b "${VM_ZVOL}" ]; then
         echo "ZVOL: ${VM_ZVOL} already exist, exit..."
         exit 1
     fi
 
+    local VM_DIR="${VM_LOCATION}/${VM_NAME}"
+    test -d "${VM_DIR}" || mkdir -v -p "${VM_DIR}"
+
+    local VM_SEED="${VM_DIR}/seed.iso"
+    local VM_DISTRO=$(find_vm_distro)
+
+    prepare_seed
     prepare_vm_zvol
     vm_create
 }
 
-VM_ZVOL_DIR=apps/vm
-VM_IMAGE_DIR=/mnt/apps/vm/images
+VM_DATASET=apps/vm
+VM_LOCATION=/mnt/${VM_DATASET}/machines
+VM_IMAGE_DIR=/mnt/${VM_DATASET}/images
+
+test -d "${VM_LOCATION}" || mkdir -v -p "${VM_LOCATION}"
+test -d "${VM_IMAGE_DIR}" || mkdir -v -p "${VM_IMAGE_DIR}"
 
 main $@

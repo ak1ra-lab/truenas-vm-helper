@@ -23,7 +23,7 @@ Debian cloud images GitLab repository: https://salsa.debian.org/cloud-team/debia
 * 根据 cloud-init 文档编写 `user-data` 和 `meta-data` 文件
     * 注意各发行版不同版本镜像安装的 cloud-init 版本不同
 * 使用 `genisoimage` 将这两个文件打包成 `seed.iso`
-    * `genisoimage -output seed.iso -input-charset utf8 -volid cidata -joliet -rock user-data meta-data`
+    * `genisoimage -output seed.iso -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data`
     * TrueNAS SCALE 并没有安装 `genisoimage`, 需要在别的机器上创建 `seed.iso` 或者打破 TrueNAS 系统依赖
 * 创建虚拟机, 下载 cloud images 的 `.raw` 格式 `dd` 到虚拟机 DISK
     * TrueNAS 中的 DISK 设备可创建 ZVOL 直接使用
