@@ -24,7 +24,7 @@ function prepare_seed() {
     test -f "${VM_SEED}" && rm -f "${VM_SEED}"
 
     truncate --size 2M ${VM_SEED}
-    mkfs.vfat -n CIDATA ${VM_SEED}
+    mkfs.vfat -S 4096 -n CIDATA ${VM_SEED}
 
     local mount_dir=$(mktemp -d)
     mount -t vfat ${VM_SEED} ${mount_dir}
