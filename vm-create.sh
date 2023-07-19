@@ -40,7 +40,7 @@ function prepare_vm_zvol() {
 }
 
 function vm_create() {
-    local VM_CONFIG="${VM_DIR}/config.json"
+    local VM_CONFIG="${VM_DIR}/vm.json"
 
     # Create the VM
     midclt call vm.create '{"name": "'${VM_NAME}'", "cpu_mode": "HOST-MODEL", "bootloader": "UEFI", "vcpus": 1, "cores": 1, "threads": 1, "memory": 1024, "autostart": false, "shutdown_timeout": 30}' | tee ${VM_CONFIG}
