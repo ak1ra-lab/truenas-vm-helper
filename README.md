@@ -2,40 +2,45 @@
 # truenas-vm-helper
 
 Helper script to create VM on TrueNAS SCALE using cloud-init with Debian/Ubuntu cloud images,
-thanks to [Setting up a VM on TrueNAS Scale using cloud-init](https://blog.robertorosario.com/setting-up-a-vm-on-truenas-scale-using-cloud-init/)
+thanks to [Setting up a VM on TrueNAS Scale using cloud-init][truenas-cloud-init]
 
-## [Debian cloud images](https://cloud.debian.org/images/cloud/)
+## How to use this script?
 
-Debian cloud images 存在几个不同类别 (type),
+* Configure the `VM_DATASET` variable in vm-create.sh to be the ZFS Dataset that you intend to use to store the VMs.
+* Download raw format cloud images (eg. [debian][debian-cloud-images], [ubuntu][ubuntu-cloud-images]) for each operating system to the `$VM_IMAGE_DIR` directory.
+    * Theoretically all **raw** OS cloud images are supported, but I haven't tested them all.
+* Customize the `user-data` and `meta-data` in the `cloud-init/` directory.
+* Just execute `./vm-create.sh`, select `$VM_IMAGE`, enter `$VM_NAME` and then execute.
+    * Note that `VM_NAME` can only be (lowercase) letters, numbers and underscores.
 
-- _azure_: Optimized for the Microsoft Azure environment
-- _ec2_: Optimized for the Amazon EC2
-- _generic_: Should run in any environment using cloud-init, for e.g. OpenStack, DigitalOcean and also on bare metal.
-- _genericcloud_: Similar to generic. Should run in any virtualised environment. Is smaller than `generic` by excluding drivers for physical hardware.
-- _nocloud_: Mostly useful for testing the build process itself. Doesn't have cloud-init installed, but instead allows root login without a password.
+## [How to use `cloud-init` in NoCloud DataSource?][cloud-init-nocloud]
 
-Debian cloud images GitLab repository: https://salsa.debian.org/cloud-team/debian-cloud-images.git
+> The data source NoCloud allows the user to provide user-data and meta-data to the instance without running a network service (or even without having a network at all).
+> 
+> You can provide meta-data and user-data to a local vm boot via files on a vfat or iso9660 filesystem. The filesystem volume label must be `cidata` or `CIDATA`.
 
-## 如何在 `nocloud` 环境 (如 TrueNAS SCALE Virtualization) 使用 Debian/Ubuntu cloud images
+The basic process is,
 
-基本流程,
-
-* 根据 cloud-init 文档编写 `user-data` 和 `meta-data` 文件
-    * 注意各发行版不同版本镜像安装的 cloud-init 版本不同
-* 使用 `genisoimage` 将这两个文件打包成 `seed.iso`
+* Write `user-data` and `meta-data` files according to the cloud-init documentation.
+    * Note that different versions of cloud-init are installed on different distributions.
+* Use `genisoimage` to package the two files into `seed.iso`.
     * `genisoimage -output seed.iso -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data`
-    * TrueNAS SCALE 并没有安装 `genisoimage`, 需要在别的机器上创建 `seed.iso` 或者打破 TrueNAS 系统依赖
-* 创建虚拟机, 下载 cloud images 的 `.raw` 格式 `dd` 到虚拟机 DISK
-    * TrueNAS 中的 DISK 设备可创建 ZVOL 直接使用
-    * [Debian cloud images](https://cloud.debian.org/images/cloud/) 可下载 `.tar.xz` 格式镜像, 解压后就是 `.raw` 格式
-    * [Ubuntu cloud images](https://cloud-images.ubuntu.com/) 的 `.img` 格式实际上为 `.qcow2` 格式, 需要用 `qemu-img convert` 转换格式
+    * TrueNAS SCALE does not have `genisoimage` installed, if you want to use `genisoimage` on TrueNAS, you may need to break the TrueNAS system dependency
+	* This script creates a small vfat filesystem (~2 MiB), mounts it and copies user-data and meta-data into it
+* Create a virtual machine, download the cloud images `.raw` format `dd` to the virtual machine DISK.
+    * [Debian cloud images][debian-cloud-images] downloads a `.tar.xz` image, which is decompressed into `.raw` format.
+    * [Ubuntu cloud images][ubuntu-cloud-images] `.img` format is actually `.qcow2` format, you need to use `qemu-img convert` to convert the format.
         * `qemu-img convert -O raw input.img output.raw`
-* 将 `seed.iso` 挂载到虚拟机的 CDROM 设备上, 注意启动顺序需要在 DISK 之前
-    * 上面给出的文章提到 CDROM 设备启动顺序需要在 DISK 之后可能有误?
-        * 实测在 DISK 之后不会读取 CDROM 中挂载的 `seed.iso`
+* Mount `seed.iso` on the CDROM device of the VM, note that the boot order needs to be before DISK.
+    * [The article given above][truenas-cloud-init] says that the CDROM device needs to be booted after DISK, may be wrong?
+    * It has been tested that the CDROM will not be read after the DISK boot sequence.
 
-参考文档,
 
-* Debian 11 (bullseye): [cloud-init 20.4.1 documentation](https://cloudinit.readthedocs.io/en/20.4.1/)
-* Debian 12 (bookworm): [cloud-init 22.4.2 documentation](https://cloudinit.readthedocs.io/en/22.4.2/index.html)
-* Ubuntu 22.04 (jammy): [cloud-init 23.1.2 documentation](https://cloudinit.readthedocs.io/en/23.1.2/reference/modules.html)
+[truenas-cloud-init]: https://blog.robertorosario.com/setting-up-a-vm-on-truenas-scale-using-cloud-init/
+[cloud-init-nocloud]: https://cloudinit.readthedocs.io/en/22.4.2/topics/datasources/nocloud.html
+[debian-cloud-images]: https://cloud.debian.org/images/cloud/
+[debian-cloud-images-repo]: https://salsa.debian.org/cloud-team/debian-cloud-images
+[ubuntu-cloud-images]: https://cloud-images.ubuntu.com/
+[cloud-init-bullseye]: https://cloudinit.readthedocs.io/en/20.4.1/
+[cloud-init-bookworm]: https://cloudinit.readthedocs.io/en/22.4.2/index.html
+[cloud-init-jammy]: https://cloudinit.readthedocs.io/en/23.1.2/index.html
