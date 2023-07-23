@@ -61,8 +61,11 @@ function vm_create() {
 
     # Add the NIC
     # Obtain a random MAC address
-    local MAC_ADDRESS=$(midclt call vm.random_mac)
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "enp35s0", "mac": "'${MAC_ADDRESS}'"}}' | tee --append ${VM_CONFIG}
+    local MAC_ADDRESS_1=$(midclt call vm.random_mac)
+    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "br35", "mac": "'${MAC_ADDRESS_1}'"}}' | tee --append ${VM_CONFIG}
+
+    local MAC_ADDRESS_2=$(midclt call vm.random_mac)
+    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br36", "mac": "'${MAC_ADDRESS_2}'"}}' | tee --append ${VM_CONFIG}
 }
 
 function main() {
