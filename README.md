@@ -10,7 +10,7 @@ thanks to [Setting up a VM on TrueNAS Scale using cloud-init][truenas-cloud-init
 * Download raw format cloud images (eg. [debian][debian-cloud-images], [ubuntu][ubuntu-cloud-images]) for each operating system to the `$VM_IMAGE_DIR` directory.
     * Theoretically all **raw** OS cloud images are supported, but I haven't tested them all.
 * Customize the `user-data` and `meta-data` in the `cloud-init/` directory.
-* Just execute `./vm-create.sh`, select `$VM_IMAGE`, enter `$VM_NAME` and then execute.
+* Execute `./vm-create.sh`, select `$VM_IMAGE`, enter `$VM_NAME`,
     * Note that `VM_NAME` can only be (lowercase) letters, numbers and underscores.
 
 ## [How to use `cloud-init` in NoCloud DataSource?][cloud-init-nocloud]
