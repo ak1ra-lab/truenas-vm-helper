@@ -1,0 +1,12 @@
+version: 2
+ethernets:
+  vnet1:
+    dhcp4: true
+    match:
+      macaddress: {{ VNET_1_MAC }}
+    set-name: vnet1
+  vnet2:
+    dhcp4: true
+    match:
+      macaddress: {{ VNET_2_MAC }}
+    set-name: vnet2

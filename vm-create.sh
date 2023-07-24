@@ -28,7 +28,7 @@ function prepare_seed() {
 
     local mount_dir=$(mktemp -d)
     mount -t vfat ${VM_SEED} ${mount_dir}
-    cp -v cloud-init/${VM_DISTRO}/{user-data,meta-data} ${mount_dir}
+    cp -v cloud-init/${VM_DISTRO}/{user-data,meta-data,network-config} ${mount_dir}
 
     umount ${mount_dir}
     rmdir -v ${mount_dir}
@@ -61,11 +61,15 @@ function vm_create() {
 
     # Add the NIC
     # Obtain a random MAC address
-    local MAC_ADDRESS_1=$(midclt call vm.random_mac)
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "br35", "mac": "'${MAC_ADDRESS_1}'"}}' | tee --append ${VM_CONFIG}
+    local VNET_1_MAC=$(midclt call vm.random_mac)
+    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "br35", "mac": "'${VNET_1_MAC}'"}}' | tee --append ${VM_CONFIG}
 
-    local MAC_ADDRESS_2=$(midclt call vm.random_mac)
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br36", "mac": "'${MAC_ADDRESS_2}'"}}' | tee --append ${VM_CONFIG}
+    local VNET_2_MAC=$(midclt call vm.random_mac)
+    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br36", "mac": "'${VNET_2_MAC}'"}}' | tee --append ${VM_CONFIG}
+
+    sed -e 's/{{ VNET_1_MAC }}/'$VNET_1_MAC'/' \
+        -e 's/{{ VNET_2_MAC }}/'$VNET_2_MAC'/' \
+        cloud-init/${VM_DISTRO}/network-config.yaml.j2 | tee cloud-init/${VM_DISTRO}/network-config
 }
 
 function main() {
@@ -117,9 +121,9 @@ function main() {
     local VM_SEED="${VM_DIR}/seed.iso"
     local VM_DISTRO=$(find_vm_distro)
 
-    prepare_seed
     prepare_vm_zvol
     vm_create
+    prepare_seed
 }
 
 VM_DATASET=apps/vm
