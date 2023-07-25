@@ -66,11 +66,11 @@ function vm_create() {
 
     # Add the NIC
     # Obtain a random MAC address
-    local VM_NIC_0_MAC=$(midclt call vm.random_mac)
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "br35", "mac": "'${VM_NIC_0_MAC}'"}}' | tee --append ${VM_CONFIG}
+    # local VM_NIC_0_MAC=$(midclt call vm.random_mac)
+    # midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "br0", "mac": "'${VM_NIC_0_MAC}'"}}' | tee --append ${VM_CONFIG}
 
-    # local VM_NIC_1_MAC=$(midclt call vm.random_mac)
-    # midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br36", "mac": "'${VM_NIC_1_MAC}'"}}' | tee --append ${VM_CONFIG}
+    local VM_NIC_1_MAC=$(midclt call vm.random_mac)
+    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br1", "mac": "'${VM_NIC_1_MAC}'"}}' | tee --append ${VM_CONFIG}
 
     # sed -e 's/{{ VM_NIC_0_MAC }}/'$VM_NIC_0_MAC'/' \
     #     -e 's/{{ VM_NIC_1_MAC }}/'$VM_NIC_1_MAC'/' \
