@@ -20,18 +20,23 @@ function find_vm_distro() {
 
 function prepare_seed() {
     # TrueNAS SCALE does not have `genisoimage` installed by default
-    # genisoimage -output seed.iso -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data
-    test -f "${VM_SEED}" && rm -f "${VM_SEED}"
 
-    truncate --size 2M ${VM_SEED}
-    mkfs.vfat -S 4096 -n CIDATA ${VM_SEED}
+    test -f ${VM_SEED} && rm -f ${VM_SEED}
+    if hash genisoimage; then
+        pushd cloud-init/${VM_DISTRO}
+        genisoimage -output ${VM_SEED} -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data
+        popd
+    else
+        truncate --size 2M ${VM_SEED}
+        mkfs.vfat -S 4096 -n CIDATA ${VM_SEED}
 
-    local mount_dir=$(mktemp -d)
-    mount -t vfat ${VM_SEED} ${mount_dir}
-    cp -v cloud-init/${VM_DISTRO}/{user-data,meta-data} ${mount_dir}
+        local mount_dir=$(mktemp -d)
+        mount -t vfat ${VM_SEED} ${mount_dir}
+        cp -v cloud-init/${VM_DISTRO}/{user-data,meta-data} ${mount_dir}
 
-    umount ${mount_dir}
-    rmdir -v ${mount_dir}
+        umount ${mount_dir}
+        rmdir -v ${mount_dir}
+    fi
 }
 
 function prepare_vm_zvol() {
