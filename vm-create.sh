@@ -36,7 +36,7 @@ function prepare_seed() {
 
 function prepare_vm_zvol() {
     zfs create -V 10GiB "${VM_ZVOL#/dev/zvol/}"
-    dd if=${VM_IMAGE} of=${VM_ZVOL} bs=128M
+    dd if=${VM_IMAGE} of=${VM_ZVOL} bs=8M
 }
 
 function vm_create() {
@@ -61,15 +61,15 @@ function vm_create() {
 
     # Add the NIC
     # Obtain a random MAC address
-    local VNET_1_MAC=$(midclt call vm.random_mac)
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "br35", "mac": "'${VNET_1_MAC}'"}}' | tee --append ${VM_CONFIG}
+    local VM_NIC_0_MAC=$(midclt call vm.random_mac)
+    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "br35", "mac": "'${VM_NIC_0_MAC}'"}}' | tee --append ${VM_CONFIG}
 
-    local VNET_2_MAC=$(midclt call vm.random_mac)
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br36", "mac": "'${VNET_2_MAC}'"}}' | tee --append ${VM_CONFIG}
+    local VM_NIC_1_MAC=$(midclt call vm.random_mac)
+    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br36", "mac": "'${VM_NIC_1_MAC}'"}}' | tee --append ${VM_CONFIG}
 
-    sed -e 's/{{ VNET_1_MAC }}/'$VNET_1_MAC'/' \
-        -e 's/{{ VNET_2_MAC }}/'$VNET_2_MAC'/' \
-        cloud-init/${VM_DISTRO}/network-config.yaml.j2 | tee cloud-init/${VM_DISTRO}/network-config
+    sed -e 's/{{ VM_NIC_0_MAC }}/'$VM_NIC_0_MAC'/' \
+        -e 's/{{ VM_NIC_1_MAC }}/'$VM_NIC_1_MAC'/' \
+        cloud-init/${VM_DISTRO}/network-config.yaml.j2 > cloud-init/${VM_DISTRO}/network-config
 }
 
 function main() {

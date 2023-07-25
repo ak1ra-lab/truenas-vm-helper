@@ -178,5 +178,6 @@ pyrightconfig.json
 ## Custom settings
 seed.iso
 images/
+examples/
 network-config
 !network-config.yaml.j2
