@@ -20,23 +20,28 @@ function find_vm_distro() {
 
 function prepare_seed() {
     # TrueNAS SCALE does not have `genisoimage` installed by default
-
     test -f ${VM_SEED} && rm -f ${VM_SEED}
+
+    pushd cloud-init/${VM_DISTRO}
+
+    sed \
+        -e 's/{{ VM_NIC_1_MAC }}/'$VM_NIC_1_MAC'/' \
+        network-config.yaml.j2 | tee network-config
+
     if hash genisoimage; then
-        pushd cloud-init/${VM_DISTRO}
-        genisoimage -output ${VM_SEED} -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data
-        popd
+        genisoimage -output ${VM_SEED} -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data network-config
     else
         truncate --size 2M ${VM_SEED}
         mkfs.vfat -S 4096 -n CIDATA ${VM_SEED}
 
         local mount_dir=$(mktemp -d)
         mount -t vfat ${VM_SEED} ${mount_dir}
-        cp -v cloud-init/${VM_DISTRO}/{user-data,meta-data} ${mount_dir}
+        cp -v user-data meta-data network-config ${mount_dir}
 
         umount ${mount_dir}
         rmdir -v ${mount_dir}
     fi
+    popd
 }
 
 function prepare_vm_zvol() {
@@ -55,9 +60,6 @@ function vm_create() {
     fi
     local VM_ID=$(head --lines=1 ${VM_CONFIG} | jq '.id')
 
-    # Add the CDROM
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "CDROM", "order": 1000, "attributes": {"path": "'${VM_SEED}'"}}' | tee --append ${VM_CONFIG}
-
     # Add the DISK
     midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "DISK", "order": 1001, "attributes": {"path": "'${VM_ZVOL}'", "type": "VIRTIO"}}' | tee --append ${VM_CONFIG}
 
@@ -72,9 +74,10 @@ function vm_create() {
     local VM_NIC_1_MAC=$(midclt call vm.random_mac)
     midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br1", "mac": "'${VM_NIC_1_MAC}'"}}' | tee --append ${VM_CONFIG}
 
-    # sed -e 's/{{ VM_NIC_0_MAC }}/'$VM_NIC_0_MAC'/' \
-    #     -e 's/{{ VM_NIC_1_MAC }}/'$VM_NIC_1_MAC'/' \
-    #     cloud-init/${VM_DISTRO}/network-config.yaml.j2 > cloud-init/${VM_DISTRO}/network-config
+    prepare_seed
+
+    # Add the CDROM
+    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "CDROM", "order": 1005, "attributes": {"path": "'${VM_SEED}'"}}' | tee --append ${VM_CONFIG}
 }
 
 function main() {
@@ -128,7 +131,6 @@ function main() {
 
     prepare_vm_zvol
     vm_create
-    prepare_seed
 }
 
 VM_DATASET=apps/vm
