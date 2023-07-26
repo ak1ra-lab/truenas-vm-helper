@@ -32,9 +32,7 @@ The basic process is,
     * [Debian cloud images][debian-cloud-images] downloads a `.tar.xz` image, which is decompressed into `.raw` format.
     * [Ubuntu cloud images][ubuntu-cloud-images] `.img` format is actually `.qcow2` format, you need to use `qemu-img convert` to convert the format.
         * `qemu-img convert -O raw input.img output.raw`
-* Mount `seed.iso` on the CDROM device of the VM, note that the boot order needs to be before DISK.
-    * [The article given above][truenas-cloud-init] says that the CDROM device needs to be booted after DISK, may be wrong?
-    * It has been tested that the CDROM will not be read after the DISK boot sequence.
+* Mount `seed.iso` on the CDROM device of the VM.
 
 
 [truenas-cloud-init]: https://blog.robertorosario.com/setting-up-a-vm-on-truenas-scale-using-cloud-init/
