@@ -6,11 +6,12 @@ thanks to [Setting up a VM on TrueNAS Scale using cloud-init][truenas-cloud-init
 
 ## How to use this script?
 
-* Configure the `VM_DATASET` variable in vm-create.sh to be the ZFS Dataset that you intend to use to store the VMs.
+* Configure the `VM_DATASET` variable in `vm-create.sh` to be the ZFS Dataset that you intend to use to store the VMs.
 * Download raw format cloud images (eg. [debian][debian-cloud-images], [ubuntu][ubuntu-cloud-images]) for each operating system to the `$VM_IMAGE_DIR` directory.
     * Theoretically all **raw** OS cloud images are supported, but I haven't tested them all.
+    * `wget -c -x -P /mnt/apps/vm/images https://cloud.debian.org/images/cloud/bookworm/20230723-1450/debian-12-generic-amd64-20230723-1450.raw`
 * Customize the `user-data` and `meta-data` in the `cloud-init/` directory.
-* Execute `./vm-create.sh`, select `$VM_IMAGE`, enter `$VM_NAME`,
+* Execute `./vm-create.sh`, select `VM_IMAGE`, enter `VM_NAME`,
     * Note that `VM_NAME` can only be (lowercase) letters, numbers and underscores.
 
 ## [How to use `cloud-init` in NoCloud DataSource?][cloud-init-nocloud]

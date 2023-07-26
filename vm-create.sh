@@ -4,7 +4,9 @@
 # Helper script to create VM on TrueNAS SCALE using cloud-init with Debian/Ubuntu cloud images
 # Thanks-To: https://blog.robertorosario.com/setting-up-a-vm-on-truenas-scale-using-cloud-init/
 
-set -o errexit -o nounset
+set -o errexit
+set -o nounset
+set -o pipefail
 
 function find_vm_distro() {
     if echo "${VM_IMAGE}" | grep -qE '(debian|bullseye|bookworm|sid)'; then
@@ -26,10 +28,11 @@ function prepare_seed() {
 
     sed \
         -e 's/{{ VM_NIC_1_MAC }}/'$VM_NIC_1_MAC'/' \
-        network-config.yaml.j2 | tee network-config
+        network-config.yaml.j2 >network-config
 
     if hash genisoimage; then
-        genisoimage -output ${VM_SEED} -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data network-config
+        genisoimage -output ${VM_SEED} \
+            -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data network-config
     else
         truncate --size 2M ${VM_SEED}
         mkfs.vfat -S 4096 -n CIDATA ${VM_SEED}
@@ -69,7 +72,7 @@ function vm_create() {
     # Add the NIC
     # Obtain a random MAC address
     # local VM_NIC_0_MAC=$(midclt call vm.random_mac)
-    # midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "br0", "mac": "'${VM_NIC_0_MAC}'"}}' | tee --append ${VM_CONFIG}
+    # midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "enp35s0", "mac": "'${VM_NIC_0_MAC}'"}}' | tee --append ${VM_CONFIG}
 
     local VM_NIC_1_MAC=$(midclt call vm.random_mac)
     midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br1", "mac": "'${VM_NIC_1_MAC}'"}}' | tee --append ${VM_CONFIG}
@@ -133,9 +136,9 @@ function main() {
     vm_create
 }
 
-VM_DATASET=apps/vm
-VM_LOCATION=/mnt/${VM_DATASET}/machines
-VM_IMAGE_DIR=/mnt/${VM_DATASET}/images
+VM_DATASET=${VM_DATASET:-apps/vm}
+VM_LOCATION=${VM_LOCATION:-/mnt/${VM_DATASET}/machines}
+VM_IMAGE_DIR=${VM_IMAGE_DIR:-/mnt/${VM_DATASET}/images}
 
 test -d "${VM_LOCATION}" || mkdir -v -p "${VM_LOCATION}"
 test -d "${VM_IMAGE_DIR}" || mkdir -v -p "${VM_IMAGE_DIR}"
