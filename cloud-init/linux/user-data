@@ -19,3 +19,8 @@ users:
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMwjXu47ceEGERvpo2nCceJFhW8hCiPW6vm/bYHgue/N github.com/ak1ra-komj
+  - name: apps
+    primary_group: apps
+    uid: 568
+    system: true
+    lock_passwd: True
