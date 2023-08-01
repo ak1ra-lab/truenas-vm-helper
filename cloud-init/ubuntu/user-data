@@ -23,7 +23,7 @@ users:
   - name: apps
     uid: 568
     system: true
-    geos: Unprivileged Apps User
+    gecos: Unprivileged Apps User
     shell: /usr/sbin/nologin
     homedir: /var/empty
 
