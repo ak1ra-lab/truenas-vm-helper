@@ -8,6 +8,21 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+function usage() {
+    cat <<EOF
+
+Usage:
+    ./vm-create.sh [-h|--help]
+    ./vm-create.sh [vm-image-filter]
+
+Examples:
+    ./vm-create.sh ubuntu
+    ./vm-create.sh bookworm
+
+EOF
+    exit 0
+}
+
 function find_vm_distro() {
     if echo "${VM_IMAGE}" | grep -qE '(debian|bullseye|bookworm|sid)'; then
         local distro=debian
@@ -85,7 +100,10 @@ function vm_create() {
 
 function main() {
     local VM_IMAGE_LIST=(
-        $(find ${VM_IMAGE_DIR} -type f -name '*.raw' | grep -vE '(genericcloud|nocloud)' | sort)
+        $(
+            find ${VM_IMAGE_DIR} -type f -name '*.raw' |
+                grep -vE '(genericcloud|nocloud)' | grep -E ''${VM_IMAGE_FILTER}'' | sort
+        )
     )
 
     local VM_IMAGE=""
@@ -135,6 +153,16 @@ function main() {
     prepare_vm_zvol
     vm_create
 }
+
+if [ "$#" -gt 0 ]; then
+    if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+        usage
+    fi
+
+    VM_IMAGE_FILTER="$1"
+else
+    VM_IMAGE_FILTER=""
+fi
 
 VM_DATASET=${VM_DATASET:-apps/vm}
 VM_LOCATION=${VM_LOCATION:-/mnt/${VM_DATASET}/machines}
