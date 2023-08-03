@@ -15,12 +15,35 @@ Usage:
     ./vm-create.sh [-h|--help]
     ./vm-create.sh [vm-image-filter]
 
+ENVs:
+    You can use some of the ENVs to override the default settings,
+    the available ENVs are as follows:
+
+    VM_DATASET, VM_LOCATION, VM_IMAGE_DIR,
+    ADD_NIC_0, NIC_0_NAME, ADD_NIC_1, NIC_1_NAME
+
+    The default value for these ENVs can be seen at the end of the script
+
 Examples:
     ./vm-create.sh ubuntu
     ./vm-create.sh bookworm
 
+    with ENVs,
+
+    VM_DATASET=/mnt/tank ./vm-create.sh ubuntu
+    ADD_NIC_0=true NIC_0_NAME=eth0 ./vm-create.sh bookworm
+
 EOF
     exit 0
+}
+
+function check_command() {
+    for command in $@; do
+        hash "$command" 2>/dev/null || {
+            echo >&2 "Required command '$command' is not installed, Aborting..."
+            exit 1
+        }
+    done
 }
 
 function find_vm_distro() {
@@ -39,11 +62,22 @@ function prepare_seed() {
     # TrueNAS SCALE does not have `genisoimage` installed by default
     test -f ${VM_SEED} && rm -f ${VM_SEED}
 
-    pushd cloud-init/${VM_DISTRO}
+    local network_config='{"version": 2, "ethernets": {}}'
+    if [ -n "${VM_NIC_0_MAC}" ]; then
+        network_config=$(
+            echo $network_config |
+                yq '.ethernets += {"nic0": {"dhcp": "true", "set-name": "nic0", "match": {"macaddress": "'$VM_NIC_0_MAC'"}}}'
+        )
+    fi
+    if [ -n "${VM_NIC_1_MAC}" ]; then
+        network_config=$(
+            echo $network_config |
+                yq '.ethernets += {"nic1": {"dhcp": "true", "set-name": "nic1", "match": {"macaddress": "'$VM_NIC_1_MAC'"}}}'
+        )
+    fi
 
-    sed \
-        -e 's/{{ VM_NIC_1_MAC }}/'$VM_NIC_1_MAC'/' \
-        network-config.yaml.j2 >network-config
+    pushd cloud-init/${VM_DISTRO}
+    echo $network_config | yq --prettyPrint . >network-config
 
     if hash genisoimage; then
         genisoimage -output ${VM_SEED} \
@@ -86,11 +120,17 @@ function vm_create() {
 
     # Add the NIC
     # Obtain a random MAC address
-    # local VM_NIC_0_MAC=$(midclt call vm.random_mac)
-    # midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "enp35s0", "mac": "'${VM_NIC_0_MAC}'"}}' | tee --append ${VM_CONFIG}
+    local VM_NIC_0_MAC=""
+    if [ "${ADD_NIC_0}" == "true" ]; then
+        VM_NIC_0_MAC=$(midclt call vm.random_mac)
+        midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "'${NIC_0_NAME}'", "mac": "'${VM_NIC_0_MAC}'"}}' | tee --append ${VM_CONFIG}
+    fi
 
-    local VM_NIC_1_MAC=$(midclt call vm.random_mac)
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "br1", "mac": "'${VM_NIC_1_MAC}'"}}' | tee --append ${VM_CONFIG}
+    local VM_NIC_1_MAC=""
+    if [ "${ADD_NIC_1}" == "true" ]; then
+        VM_NIC_1_MAC=$(midclt call vm.random_mac)
+        midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "'${NIC_1_NAME}'", "mac": "'${VM_NIC_1_MAC}'"}}' | tee --append ${VM_CONFIG}
+    fi
 
     prepare_seed
 
@@ -154,6 +194,8 @@ function main() {
     vm_create
 }
 
+check_command jq midclt yq zfs
+
 if [ "$#" -gt 0 ]; then
     if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
         usage
@@ -167,6 +209,12 @@ fi
 VM_DATASET=${VM_DATASET:-apps/vm}
 VM_LOCATION=${VM_LOCATION:-/mnt/${VM_DATASET}/machines}
 VM_IMAGE_DIR=${VM_IMAGE_DIR:-/mnt/${VM_DATASET}/images}
+
+ADD_NIC_0=${ADD_NIC_0:-false}
+NIC_0_NAME=${NIC_0_NAME:-enp35s0}
+
+ADD_NIC_1=${ADD_NIC_1:-true}
+NIC_1_NAME=${NIC_1_NAME:-br1}
 
 test -d "${VM_LOCATION}" || mkdir -v -p "${VM_LOCATION}"
 test -d "${VM_IMAGE_DIR}" || mkdir -v -p "${VM_IMAGE_DIR}"
