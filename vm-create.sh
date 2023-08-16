@@ -66,13 +66,13 @@ function prepare_seed() {
     if [ -n "${VM_NIC_0_MAC}" ]; then
         network_config=$(
             echo $network_config |
-                yq '.ethernets += {"nic0": {"dhcp": "true", "set-name": "nic0", "match": {"macaddress": "'$VM_NIC_0_MAC'"}}}'
+                yq '.ethernets += {"nic0": {"dhcp4": "true", "set-name": "nic0", "match": {"macaddress": "'$VM_NIC_0_MAC'"}}}'
         )
     fi
     if [ -n "${VM_NIC_1_MAC}" ]; then
         network_config=$(
             echo $network_config |
-                yq '.ethernets += {"nic1": {"dhcp": "true", "set-name": "nic1", "match": {"macaddress": "'$VM_NIC_1_MAC'"}}}'
+                yq '.ethernets += {"nic1": {"dhcp4": "true", "set-name": "nic1", "match": {"macaddress": "'$VM_NIC_1_MAC'"}}}'
         )
     fi
 
