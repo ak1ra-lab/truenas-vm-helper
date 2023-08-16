@@ -110,7 +110,7 @@ function vm_create() {
     if [ $? -ne 0 ]; then
         exit 1
     fi
-    local VM_ID=$(head --lines=1 ${VM_CONFIG} | jq '.id')
+    local VM_ID=$(head --lines=1 ${VM_CONFIG} | yq '.id')
 
     # Add the DISK
     midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "DISK", "order": 1001, "attributes": {"path": "'${VM_ZVOL}'", "type": "VIRTIO"}}' | tee --append ${VM_CONFIG}
@@ -194,7 +194,7 @@ function main() {
     vm_create
 }
 
-check_command jq midclt yq zfs
+check_command midclt yq zfs
 
 if [ "$#" -gt 0 ]; then
     if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
