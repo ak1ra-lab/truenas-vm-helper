@@ -210,10 +210,10 @@ VM_DATASET=${VM_DATASET:-apps/vm}
 VM_LOCATION=${VM_LOCATION:-/mnt/${VM_DATASET}/machines}
 VM_IMAGE_DIR=${VM_IMAGE_DIR:-/mnt/${VM_DATASET}/images}
 
-ADD_NIC_0=${ADD_NIC_0:-false}
+ADD_NIC_0=${ADD_NIC_0:-true}
 NIC_0_NAME=${NIC_0_NAME:-enp35s0}
 
-ADD_NIC_1=${ADD_NIC_1:-true}
+ADD_NIC_1=${ADD_NIC_1:-false}
 NIC_1_NAME=${NIC_1_NAME:-br1}
 
 test -d "${VM_LOCATION}" || mkdir -v -p "${VM_LOCATION}"
