@@ -31,7 +31,7 @@ Examples:
     with ENVs,
 
     VM_DATASET=/mnt/tank ./vm-create.sh ubuntu
-    ADD_NIC_0=true NIC_0_NAME=eth0 ./vm-create.sh bookworm
+    ADD_NIC_0=true NIC_0_NAME=br0 ./vm-create.sh bookworm
 
 EOF
     exit 0
@@ -211,7 +211,7 @@ VM_LOCATION=${VM_LOCATION:-/mnt/${VM_DATASET}/machines}
 VM_IMAGE_DIR=${VM_IMAGE_DIR:-/mnt/${VM_DATASET}/images}
 
 ADD_NIC_0=${ADD_NIC_0:-true}
-NIC_0_NAME=${NIC_0_NAME:-enp35s0}
+NIC_0_NAME=${NIC_0_NAME:-br0}
 
 ADD_NIC_1=${ADD_NIC_1:-false}
 NIC_1_NAME=${NIC_1_NAME:-br1}
