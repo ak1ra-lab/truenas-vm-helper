@@ -19,7 +19,7 @@ VM_IMAGE_ARCHLINUX_URL="https://geo.mirror.pkgbuild.com/images/v20230901.175781/
 main() {
     # download the image
     if [ ! -f "$VM_IMAGE" ]; then
-        wget -c -x -P "$VM_IMAGE_DIR" "$VM_IMAGE_URL"
+        wget -c -P "$VM_IMAGE_DIR" "$VM_IMAGE_URL"
     fi
 
     # create a new VM with VirtIO SCSI controller
