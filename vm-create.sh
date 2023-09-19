@@ -8,7 +8,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-function usage() {
+usage() {
     cat <<EOF
 
 Usage:
@@ -19,8 +19,8 @@ ENVs:
     You can use some of the ENVs to override the default settings,
     the available ENVs are as follows:
 
-    VM_DATASET, VM_LOCATION, VM_IMAGE_DIR,
-    ADD_NIC_0, NIC_0_NAME, ADD_NIC_1, NIC_1_NAME
+    vm_dataset, vm_location, vm_image_dir,
+    add_nic_0, nic_0_name, add_nic_1, nic_1_name
 
     The default value for these ENVs can be seen at the end of the script
 
@@ -30,26 +30,26 @@ Examples:
 
     with ENVs,
 
-    VM_DATASET=/mnt/tank ./vm-create.sh ubuntu
-    ADD_NIC_0=true NIC_0_NAME=br0 ./vm-create.sh bookworm
+    vm_dataset=/mnt/tank ./vm-create.sh ubuntu
+    add_nic_0=true nic_0_name=br0 ./vm-create.sh bookworm
 
 EOF
     exit 0
 }
 
-function check_command() {
+check_command() {
     for command in $@; do
         hash "$command" 2>/dev/null || {
-            echo >&2 "Required command '$command' is not installed, Aborting..."
+            echo >&2 "required command '$command' is not installed, aborting..."
             exit 1
         }
     done
 }
 
-function find_vm_distro() {
-    if echo "${VM_IMAGE}" | grep -qE '(debian|bullseye|bookworm|sid)'; then
+find_vm_distro() {
+    if echo "${vm_image}" | grep -qE '(debian|bullseye|bookworm|sid)'; then
         local distro=debian
-    elif echo "${VM_IMAGE}" | grep -qE '(ubuntu|focal|jammy)'; then
+    elif echo "${vm_image}" | grep -qE '(ubuntu|focal|jammy)'; then
         local distro=ubuntu
     else
         local distro=linux
@@ -58,36 +58,36 @@ function find_vm_distro() {
     echo "$distro"
 }
 
-function prepare_seed() {
+prepare_seed() {
     # TrueNAS SCALE does not have `genisoimage` installed by default
-    test -f ${VM_SEED} && rm -f ${VM_SEED}
+    test -f ${vm_seed} && rm -f ${vm_seed}
 
     local network_config='{"version": 2, "ethernets": {}}'
-    if [ -n "${VM_NIC_0_MAC}" ]; then
+    if [ -n "${vm_nic_0_mac}" ]; then
         network_config=$(
             echo $network_config |
-                yq '.ethernets += {"nic0": {"dhcp4": "true", "set-name": "nic0", "match": {"macaddress": "'$VM_NIC_0_MAC'"}}}'
+                yq '.ethernets += {"nic0": {"dhcp4": "true", "set-name": "nic0", "match": {"macaddress": "'$vm_nic_0_mac'"}}}'
         )
     fi
-    if [ -n "${VM_NIC_1_MAC}" ]; then
+    if [ -n "${vm_nic_1_mac}" ]; then
         network_config=$(
             echo $network_config |
-                yq '.ethernets += {"nic1": {"dhcp4": "true", "set-name": "nic1", "match": {"macaddress": "'$VM_NIC_1_MAC'"}}}'
+                yq '.ethernets += {"nic1": {"dhcp4": "true", "set-name": "nic1", "match": {"macaddress": "'$vm_nic_1_mac'"}}}'
         )
     fi
 
-    pushd cloud-init/${VM_DISTRO}
+    pushd cloud-init/${vm_distro}
     echo $network_config | yq --prettyPrint . >network-config
 
     if hash genisoimage; then
-        genisoimage -output ${VM_SEED} \
+        genisoimage -output ${vm_seed} \
             -input-charset utf8 -volid CIDATA -joliet -rock user-data meta-data network-config
     else
-        truncate --size 2M ${VM_SEED}
-        mkfs.vfat -S 4096 -n CIDATA ${VM_SEED}
+        truncate --size 2M ${vm_seed}
+        mkfs.vfat -S 4096 -n CIDATA ${vm_seed}
 
         local mount_dir=$(mktemp -d)
-        mount -t vfat ${VM_SEED} ${mount_dir}
+        mount -t vfat ${vm_seed} ${mount_dir}
         cp -v user-data meta-data network-config ${mount_dir}
 
         umount ${mount_dir}
@@ -96,99 +96,99 @@ function prepare_seed() {
     popd
 }
 
-function prepare_vm_zvol() {
-    zfs create -V 10GiB "${VM_ZVOL#/dev/zvol/}"
-    dd if=${VM_IMAGE} of=${VM_ZVOL} bs=8M
+prepare_vm_zvol() {
+    zfs create -V 10GiB "${vm_zvol#/dev/zvol/}"
+    dd if=${vm_image} of=${vm_zvol} bs=8M
 }
 
-function vm_create() {
-    local VM_CONFIG="${VM_DIR}/vm.json"
+vm_create() {
+    local vm_config="${vm_dir}/vm.json"
 
-    # Create the VM
-    midclt call vm.create '{"name": "'${VM_NAME}'", "cpu_mode": "HOST-MODEL", "bootloader": "UEFI", "vcpus": 1, "cores": 1, "threads": 1, "memory": 1024, "autostart": false, "shutdown_timeout": 30}' | tee ${VM_CONFIG}
+    # create the vm
+    midclt call vm.create '{"name": "'${vm_name}'", "cpu_mode": "HOST-MODEL", "bootloader": "UEFI", "vcpus": 1, "cores": 1, "threads": 1, "memory": 1024, "autostart": false, "shutdown_timeout": 30}' | tee ${vm_config}
 
     if [ $? -ne 0 ]; then
         exit 1
     fi
-    local VM_ID=$(head --lines=1 ${VM_CONFIG} | yq '.id')
+    local vm_id=$(head --lines=1 ${vm_config} | yq '.id')
 
-    # Add the DISK
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "DISK", "order": 1001, "attributes": {"path": "'${VM_ZVOL}'", "type": "VIRTIO"}}' | tee --append ${VM_CONFIG}
+    # add the disk
+    midclt call vm.device.create '{"vm": '${vm_id}', "dtype": "DISK", "order": 1001, "attributes": {"path": "'${vm_zvol}'", "type": "VIRTIO"}}' | tee --append ${vm_config}
 
-    # Add the DISPLAY
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "DISPLAY", "order": 1002, "attributes": {"web": true, "type": "VNC", "bind": "0.0.0.0", "wait": false}}' | tee --append ${VM_CONFIG}
+    # add the display
+    midclt call vm.device.create '{"vm": '${vm_id}', "dtype": "DISPLAY", "order": 1002, "attributes": {"web": true, "type": "VNC", "bind": "0.0.0.0", "wait": false}}' | tee --append ${vm_config}
 
-    # Add the NIC
-    # Obtain a random MAC address
-    local VM_NIC_0_MAC=""
-    if [ "${ADD_NIC_0}" == "true" ]; then
-        VM_NIC_0_MAC=$(midclt call vm.random_mac)
-        midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "'${NIC_0_NAME}'", "mac": "'${VM_NIC_0_MAC}'"}}' | tee --append ${VM_CONFIG}
+    # add the nic
+    # obtain a random mac address
+    local vm_nic_0_mac=""
+    if [ "${add_nic_0}" == "true" ]; then
+        vm_nic_0_mac=$(midclt call vm.random_mac)
+        midclt call vm.device.create '{"vm": '${vm_id}', "dtype": "NIC", "order": 1003, "attributes": {"type": "VIRTIO", "nic_attach": "'${nic_0_name}'", "mac": "'${vm_nic_0_mac}'"}}' | tee --append ${vm_config}
     fi
 
-    local VM_NIC_1_MAC=""
-    if [ "${ADD_NIC_1}" == "true" ]; then
-        VM_NIC_1_MAC=$(midclt call vm.random_mac)
-        midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "'${NIC_1_NAME}'", "mac": "'${VM_NIC_1_MAC}'"}}' | tee --append ${VM_CONFIG}
+    local vm_nic_1_mac=""
+    if [ "${add_nic_1}" == "true" ]; then
+        vm_nic_1_mac=$(midclt call vm.random_mac)
+        midclt call vm.device.create '{"vm": '${vm_id}', "dtype": "NIC", "order": 1004, "attributes": {"type": "VIRTIO", "nic_attach": "'${nic_1_name}'", "mac": "'${vm_nic_1_mac}'"}}' | tee --append ${vm_config}
     fi
 
     prepare_seed
 
-    # Add the CDROM
-    midclt call vm.device.create '{"vm": '${VM_ID}', "dtype": "CDROM", "order": 1005, "attributes": {"path": "'${VM_SEED}'"}}' | tee --append ${VM_CONFIG}
+    # add the cdrom
+    midclt call vm.device.create '{"vm": '${vm_id}', "dtype": "CDROM", "order": 1005, "attributes": {"path": "'${vm_seed}'"}}' | tee --append ${vm_config}
 }
 
-function main() {
-    local VM_IMAGE_LIST=(
+main() {
+    local vm_image_list=(
         $(
-            find ${VM_IMAGE_DIR} -type f -name '*.raw' |
-                grep -vE '(genericcloud|nocloud)' | grep -E ''${VM_IMAGE_FILTER}'' | sort
+            find ${vm_image_dir} -type f -name '*.raw' |
+                grep -vE '(genericcloud|nocloud)' | grep -E ''${vm_image_filter}'' | sort
         )
     )
 
-    local VM_IMAGE=""
+    local vm_image=""
     while [ true ]; do
-        for idx in ${!VM_IMAGE_LIST[@]}; do
-            printf "%3d | %s\n" "$((idx))" "${VM_IMAGE_LIST[idx]#${VM_IMAGE_DIR}/}"
+        for idx in ${!vm_image_list[@]}; do
+            printf "%3d | %s\n" "$((idx))" "${vm_image_list[idx]#${vm_image_dir}/}"
         done
 
-        read -p "Please select VM_IMAGE (q to quit): " choice
+        read -p "please select vm_image (q to quit): " choice
         if [ "$choice" == "q" ] || [ "$choice" == "quit" ]; then
             exit 0
         fi
         echo $choice | grep -qE '[0-9][0-9]?'
         if [ $? -eq 0 ]; then
-            VM_IMAGE="${VM_IMAGE_LIST[$((choice))]}"
+            vm_image="${vm_image_list[$((choice))]}"
             break
         fi
     done
 
-    local VM_NAME=""
-    local VM_NAME_SUFFIX=$(echo $(basename ${VM_IMAGE%.raw}) | sed -E -e 's/[.-]+/_/g')
+    local vm_name=""
+    local vm_name_suffix=$(echo $(basename ${vm_image%.raw}) | sed -E -e 's/[.-]+/_/g')
     while [ true ]; do
-        read -p "Please input VM_NAME (q to quit): " VM_NAME_INPUT
-        if [ "$VM_NAME_INPUT" == "q" ] || [ "$VM_NAME_INPUT" == "quit" ]; then
+        read -p "please input vm_name (q to quit): " vm_name_input
+        if [ "$vm_name_input" == "q" ] || [ "$vm_name_input" == "quit" ]; then
             exit 0
         fi
-        if echo "${VM_NAME_INPUT}" | grep -qE '[a-z0-9_]+'; then
-            VM_NAME="${VM_NAME_INPUT}_${VM_NAME_SUFFIX}"
+        if echo "${vm_name_input}" | grep -qE '[a-z0-9_]+'; then
+            vm_name="${vm_name_input}_${vm_name_suffix}"
             break
         else
-            echo "VM_NAME can only be combination of letters, numbers and underscores."
+            echo "vm_name can only be combination of letters, numbers and underscores."
         fi
     done
 
-    local VM_ZVOL="/dev/zvol/${VM_DATASET}/${VM_NAME}"
-    if [ -b "${VM_ZVOL}" ]; then
-        echo "ZVOL: ${VM_ZVOL} already exist, exit..."
+    local vm_zvol="/dev/zvol/${vm_dataset}/${vm_name}"
+    if [ -b "${vm_zvol}" ]; then
+        echo "zvol: ${vm_zvol} already exist, exit..."
         exit 1
     fi
 
-    local VM_DIR="${VM_LOCATION}/${VM_NAME}"
-    test -d "${VM_DIR}" || mkdir -v -p "${VM_DIR}"
+    local vm_dir="${vm_location}/${vm_name}"
+    test -d "${vm_dir}" || mkdir -v -p "${vm_dir}"
 
-    local VM_SEED="${VM_DIR}/seed.iso"
-    local VM_DISTRO=$(find_vm_distro)
+    local vm_seed="${vm_dir}/seed.iso"
+    local vm_distro=$(find_vm_distro)
 
     prepare_vm_zvol
     vm_create
@@ -201,22 +201,22 @@ if [ "$#" -gt 0 ]; then
         usage
     fi
 
-    VM_IMAGE_FILTER="$1"
+    vm_image_filter="$1"
 else
-    VM_IMAGE_FILTER=""
+    vm_image_filter=""
 fi
 
-VM_DATASET=${VM_DATASET:-apps/vm}
-VM_LOCATION=${VM_LOCATION:-/mnt/${VM_DATASET}/machines}
-VM_IMAGE_DIR=${VM_IMAGE_DIR:-/mnt/${VM_DATASET}/images}
+vm_dataset=${vm_dataset:-apps/vm}
+vm_location=${vm_location:-/mnt/${vm_dataset}/machines}
+vm_image_dir=${vm_image_dir:-/mnt/${vm_dataset}/images}
 
-ADD_NIC_0=${ADD_NIC_0:-true}
-NIC_0_NAME=${NIC_0_NAME:-br0}
+add_nic_0=${add_nic_0:-true}
+nic_0_name=${nic_0_name:-br0}
 
-ADD_NIC_1=${ADD_NIC_1:-false}
-NIC_1_NAME=${NIC_1_NAME:-br1}
+add_nic_1=${add_nic_1:-false}
+nic_1_name=${nic_1_name:-br1}
 
-test -d "${VM_LOCATION}" || mkdir -v -p "${VM_LOCATION}"
-test -d "${VM_IMAGE_DIR}" || mkdir -v -p "${VM_IMAGE_DIR}"
+test -d "${vm_location}" || mkdir -v -p "${vm_location}"
+test -d "${vm_image_dir}" || mkdir -v -p "${vm_image_dir}"
 
 main $@

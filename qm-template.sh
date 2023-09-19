@@ -2,61 +2,61 @@
 # https://pve.proxmox.com/wiki/Cloud-Init_Support
 
 # https://cloud.debian.org/images/cloud/bookworm/
-VM_IMAGE_BOOKWORM_URL="https://cloud.debian.org/images/cloud/bookworm/20230910-1499/debian-12-genericcloud-amd64-20230910-1499.qcow2"
+vm_image_bookworm_url="https://cloud.debian.org/images/cloud/bookworm/20230910-1499/debian-12-genericcloud-amd64-20230910-1499.qcow2"
 
 # https://cloud-images.ubuntu.com/jammy/
-VM_IMAGE_JAMMY_URL="https://cloud-images.ubuntu.com/jammy/20230828/jammy-server-cloudimg-amd64.img"
+vm_image_jammy_url="https://cloud-images.ubuntu.com/jammy/20230828/jammy-server-cloudimg-amd64.img"
 
 # https://cdn.amazonlinux.com/os-images/latest/
-VM_IMAGE_AMAZON_LINUX_2_URL="https://cdn.amazonlinux.com/os-images/2.0.20230906.0/kvm/amzn2-kvm-2.0.20230906.0-x86_64.xfs.gpt.qcow2"
+vm_image_amazon_linux_2_url="https://cdn.amazonlinux.com/os-images/2.0.20230906.0/kvm/amzn2-kvm-2.0.20230906.0-x86_64.xfs.gpt.qcow2"
 
 # https://download.opensuse.org/repositories/Cloud:/Images:/
-VM_IMAGE_OPENSUSE_LEAP_URL="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.5/images/openSUSE-Leap-15.5.x86_64-1.0.0-NoCloud-Build1.79.qcow2"
+vm_image_opensuse_leap_url="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.5/images/openSUSE-Leap-15.5.x86_64-1.0.0-NoCloud-Build1.79.qcow2"
 
 # https://gitlab.archlinux.org/archlinux/arch-boxes
-VM_IMAGE_ARCHLINUX_URL="https://geo.mirror.pkgbuild.com/images/v20230901.175781/Arch-Linux-x86_64-cloudimg-20230901.175781.qcow2"
+vm_image_archlinux_url="https://geo.mirror.pkgbuild.com/images/v20230901.175781/Arch-Linux-x86_64-cloudimg-20230901.175781.qcow2"
 
 main() {
     # download the image
-    if [ ! -f "$VM_IMAGE" ]; then
-        wget -c -P "$VM_IMAGE_DIR" "$VM_IMAGE_URL"
+    if [ ! -f "$vm_image" ]; then
+        wget -c -P "$vm_image_dir" "$vm_image_url"
     fi
 
-    # create a new VM with VirtIO SCSI controller
-    qm create "$VM_ID" --name "$VM_IMAGE_NAME_FQDN" --memory 1024 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci
+    # create a new vm with virtio scsi controller
+    qm create "$vm_id" --name "$vm_image_name_fqdn" --memory 1024 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci
 
-    # import the downloaded disk to the $VM_DISK_STORAGE storage (eg: local-lvm), attaching it as a SCSI drive
-    qm set "$VM_ID" --scsi0 ${VM_DISK_STORAGE}:0,import-from=${VM_IMAGE}
+    # import the downloaded disk to the $vm_disk_storage storage (eg: local-lvm), attaching it as a scsi drive
+    qm set "$vm_id" --scsi0 ${vm_disk_storage}:0,import-from=${vm_image}
 
-    # Add Cloud-Init CD-ROM drive
-    qm set "$VM_ID" --ide2 ${VM_DISK_STORAGE}:cloudinit
+    # add cloud-init cd-rom drive
+    qm set "$vm_id" --ide2 ${vm_disk_storage}:cloudinit
 
-    # To be able to boot directly from the Cloud-Init image, set the boot parameter to order=scsi0 to restrict BIOS to boot from this disk only.
-    qm set "$VM_ID" --boot order=scsi0
+    # to be able to boot directly from the cloud-init image, set the boot parameter to order=scsi0 to restrict bios to boot from this disk only.
+    qm set "$vm_id" --boot order=scsi0
 
-    # For many Cloud-Init images, it is required to configure a serial console and use it as a display.
-    qm set "$VM_ID" --serial0 socket --vga serial0
+    # for many cloud-init images, it is required to configure a serial console and use it as a display.
+    qm set "$vm_id" --serial0 socket --vga serial0
 
-    # In a last step, it is helpful to convert the VM into a template.
-    qm template "$VM_ID"
+    # in a last step, it is helpful to convert the vm into a template.
+    qm template "$vm_id"
 }
 
-VM_ID=${VM_ID:-9000}
-if [ -f "/etc/pve/qemu-server/${VM_ID}.conf" ]; then
-    echo "VM_ID: $VM_ID is already in use..."
+vm_id=${vm_id:-9000}
+if [ -f "/etc/pve/qemu-server/${vm_id}.conf" ]; then
+    echo "vm_id: $vm_id is already in use..."
     exit 1
 fi
 
-VM_DISK_STORAGE=${VM_DISK_STORAGE:-apps}
+vm_disk_storage=${vm_disk_storage:-apps}
 
-VM_IMAGES_BASE_DIR="/${VM_DISK_STORAGE}/vm/images"
-test -d "$VM_IMAGES_BASE_DIR" || mkdir -p "$VM_IMAGES_BASE_DIR"
+vm_images_base_dir="/${vm_disk_storage}/vm/images"
+test -d "$vm_images_base_dir" || mkdir -p "$vm_images_base_dir"
 
-VM_IMAGE_URL="${VM_IMAGE_URL:-$VM_IMAGE_BOOKWORM_URL}"
-VM_IMAGE_DIR="${VM_IMAGES_BASE_DIR}/$(echo ${VM_IMAGE_URL%/*} | sed -E -e 's%^https?://%%' -e 's%:%%g')"
-VM_IMAGE_NAME="${VM_IMAGE_URL##*/}"
-VM_IMAGE_NAME_FQDN="$(echo ${VM_IMAGE_NAME%.*} | sed -E -e 's%[\._]%%g')"
+vm_image_url="${vm_image_url:-$vm_image_bookworm_url}"
+vm_image_dir="${vm_images_base_dir}/$(echo ${vm_image_url%/*} | sed -E -e 's%^https?://%%' -e 's%:%%g')"
+vm_image_name="${vm_image_url##*/}"
+vm_image_name_fqdn="$(echo ${vm_image_name%.*} | sed -E -e 's%[\._]%%g')"
 
-VM_IMAGE="${VM_IMAGE_DIR}/${VM_IMAGE_NAME}"
+vm_image="${vm_image_dir}/${vm_image_name}"
 
 main $@
