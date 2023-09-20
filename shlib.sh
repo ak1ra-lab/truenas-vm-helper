@@ -86,7 +86,7 @@ hash_sha256_verify() {
   elif grep -q '^SHA2-256\(('${BASENAME}')\)?=' "${checksums}"; then
     want=$(grep '^SHA2-256\(('${BASENAME}')\)?=' "${checksums}" | cut -d "=" -f 2 | sed -e 's/^[[:space:]]*//')
   else
-    want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+    want=$(grep "${BASENAME}$" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
   fi
   if [ -z "$want" ]; then
     log_err "hash_sha256_verify unable to find checksum for '${TARGET}' in '${checksums}'"
@@ -130,7 +130,7 @@ hash_sha512_verify() {
   elif grep -q '^SHA2-512\(('${BASENAME}')\)?=' "${checksums}"; then
     want=$(grep '^SHA2-512\(('${BASENAME}')\)?=' "${checksums}" | cut -d "=" -f 2 | sed -e 's/^[[:space:]]*//')
   else
-    want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+    want=$(grep "${BASENAME}$" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
   fi
   if [ -z "$want" ]; then
     log_err "hash_sha512_verify unable to find checksum for '${TARGET}' in '${checksums}'"
@@ -244,11 +244,11 @@ log_info() {
 }
 log_notice() {
   log_priority 5 || return 0
-  echoerr "$(log_prefix)[$(log_tag 6)]" "$@"
+  echoerr "$(log_prefix)[$(log_tag 5)]" "$@"
 }
 log_warning() {
   log_priority 4 || return 0
-  echoerr "$(log_prefix)[$(log_tag 6)]" "$@"
+  echoerr "$(log_prefix)[$(log_tag 4)]" "$@"
 }
 log_err() {
   log_priority 3 || return 0
@@ -260,11 +260,11 @@ log_crit() {
 }
 log_alert() {
   log_priority 1 || return 0
-  echoerr "$(log_prefix)[$(log_tag 6)]" "$@"
+  echoerr "$(log_prefix)[$(log_tag 1)]" "$@"
 }
 log_emerg() {
   log_priority 0 || return 0
-  echoerr "$(log_prefix)[$(log_tag 6)]" "$@"
+  echoerr "$(log_prefix)[$(log_tag 0)]" "$@"
 }
 mktmpdir() {
   test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
