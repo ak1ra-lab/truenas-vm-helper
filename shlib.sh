@@ -66,8 +66,8 @@ hash_sha256() {
     hash=$(shasum -a 256 "$TARGET" 2>/dev/null) || return 1
     echo "$hash" | cut -d ' ' -f 1
   elif is_command openssl; then
-    hash=$(openssl -dst openssl dgst -sha256 "$TARGET") || return 1
-    echo "$hash" | cut -d ' ' -f a
+    hash=$(openssl dgst -sha256 "$TARGET") || return 1
+    echo "$hash" | cut -d "=" -f 2 | sed -e 's/^[[:space:]]*//'
   else
     log_crit "hash_sha256 unable to find command to compute sha-256 hash"
     return 1
@@ -81,7 +81,13 @@ hash_sha256_verify() {
     return 1
   fi
   BASENAME=${TARGET##*/}
-  want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+  if grep -q '^SHA256 ('${BASENAME}') =' "${checksums}"; then
+    want=$(grep '^SHA256 ('${BASENAME}') =' "${checksums}" | cut -d "=" -f 2 | sed -e 's/^[[:space:]]*//')
+  elif grep -q '^SHA2-256\(('${BASENAME}')\)?=' "${checksums}"; then
+    want=$(grep '^SHA2-256\(('${BASENAME}')\)?=' "${checksums}" | cut -d "=" -f 2 | sed -e 's/^[[:space:]]*//')
+  else
+    want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+  fi
   if [ -z "$want" ]; then
     log_err "hash_sha256_verify unable to find checksum for '${TARGET}' in '${checksums}'"
     return 1
@@ -104,8 +110,8 @@ hash_sha512() {
     hash=$(shasum -a 512 "$TARGET" 2>/dev/null) || return 1
     echo "$hash" | cut -d ' ' -f 1
   elif is_command openssl; then
-    hash=$(openssl -dst openssl dgst -sha512 "$TARGET") || return 1
-    echo "$hash" | cut -d ' ' -f a
+    hash=$(openssl dgst -sha512 "$TARGET") || return 1
+    echo "$hash" | cut -d "=" -f 2 | sed -e 's/^[[:space:]]*//'
   else
     log_crit "hash_sha512 unable to find command to compute sha-512 hash"
     return 1
@@ -119,7 +125,13 @@ hash_sha512_verify() {
     return 1
   fi
   BASENAME=${TARGET##*/}
-  want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+  if grep -q '^SHA512 ('${BASENAME}') =' "${checksums}"; then
+    want=$(grep '^SHA512 ('${BASENAME}') =' "${checksums}" | cut -d "=" -f 2 | sed -e 's/^[[:space:]]*//')
+  elif grep -q '^SHA2-512\(('${BASENAME}')\)?=' "${checksums}"; then
+    want=$(grep '^SHA2-512\(('${BASENAME}')\)?=' "${checksums}" | cut -d "=" -f 2 | sed -e 's/^[[:space:]]*//')
+  else
+    want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+  fi
   if [ -z "$want" ]; then
     log_err "hash_sha512_verify unable to find checksum for '${TARGET}' in '${checksums}'"
     return 1
