@@ -207,6 +207,14 @@ http_last_modified() {
 is_command() {
   command -v "$1" >/dev/null
 }
+require_command() {
+  for c in "$@"; do
+    command -v "$c" >/dev/null || {
+      echo >&2 "required command '$c' is not installed, aborting..."
+      exit 1
+    }
+  done
+}
 log_prefix() {
   echo "[$(date_iso8601)][$0]"
 }
@@ -271,6 +279,20 @@ mktmpdir() {
   mkdir -p "${TMPDIR}"
   echo "${TMPDIR}"
 }
+uname_arch() {
+  arch=$(uname -m)
+  case $arch in
+    x86_64) arch="amd64" ;;
+    x86) arch="386" ;;
+    i686) arch="386" ;;
+    i386) arch="386" ;;
+    aarch64) arch="arm64" ;;
+    armv5*) arch="armv5" ;;
+    armv6*) arch="armv6" ;;
+    armv7*) arch="armv7" ;;
+  esac
+  echo ${arch}
+}
 uname_arch_check() {
   arch=$(uname_arch)
   case "$arch" in
@@ -292,19 +314,14 @@ uname_arch_check() {
   log_crit "uname_arch_check '$(uname -m)' got converted to '$arch' which is not a GOARCH value.  Please file bug report at https://github.com/client9/shlib"
   return 1
 }
-uname_arch() {
-  arch=$(uname -m)
-  case $arch in
-    x86_64) arch="amd64" ;;
-    x86) arch="386" ;;
-    i686) arch="386" ;;
-    i386) arch="386" ;;
-    aarch64) arch="arm64" ;;
-    armv5*) arch="armv5" ;;
-    armv6*) arch="armv6" ;;
-    armv7*) arch="armv7" ;;
+uname_os() {
+  os=$(uname -s | tr '[:upper:]' '[:lower:]')
+  case "$os" in
+    msys*) os="windows" ;;
+    mingw*) os="windows" ;;
+    cygwin*) os="windows" ;;
   esac
-  echo ${arch}
+  echo "$os"
 }
 uname_os_check() {
   os=$(uname_os)
@@ -323,15 +340,6 @@ uname_os_check() {
   esac
   log_crit "uname_os_check '$(uname -s)' got converted to '$os' which is not a GOOS value. Please file bug at https://github.com/client9/shlib"
   return 1
-}
-uname_os() {
-  os=$(uname -s | tr '[:upper:]' '[:lower:]')
-  case "$os" in
-    msys*) os="windows" ;;
-    mingw*) os="windows" ;;
-    cygwin*) os="windows" ;;
-  esac
-  echo "$os"
 }
 untar() {
   tarball=$1

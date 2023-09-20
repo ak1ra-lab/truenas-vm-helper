@@ -8,12 +8,16 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# import shlib
+this=$(readlink -f "$0")
+. "$(dirname "$this")"/shlib.sh
+
 usage() {
     cat <<EOF
 
 Usage:
-    ./vm-create.sh [-h|--help]
-    ./vm-create.sh [vm-image-filter]
+    $(basename $this) [-h|--help]
+    $(basename $this) [vm-image-filter]
 
 ENVs:
     You can use some of the ENVs to override the default settings,
@@ -25,25 +29,16 @@ ENVs:
     The default value for these ENVs can be seen at the end of the script
 
 Examples:
-    ./vm-create.sh ubuntu
-    ./vm-create.sh bookworm
+    $(basename $this) ubuntu
+    $(basename $this) bookworm
 
     with ENVs,
 
-    vm_dataset=/mnt/tank ./vm-create.sh ubuntu
-    add_nic_0=true nic_0_name=br0 ./vm-create.sh bookworm
+    vm_dataset=/mnt/tank $(basename $this) ubuntu
+    add_nic_0=true nic_0_name=br0 $(basename $this) bookworm
 
 EOF
     exit 0
-}
-
-check_command() {
-    for command in $@; do
-        hash "$command" 2>/dev/null || {
-            echo >&2 "required command '$command' is not installed, aborting..."
-            exit 1
-        }
-    done
 }
 
 find_vm_distro() {
@@ -194,7 +189,7 @@ main() {
     vm_create
 }
 
-check_command midclt yq zfs
+require_command midclt yq zfs
 
 if [ "$#" -gt 0 ]; then
     if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
@@ -219,4 +214,4 @@ nic_1_name=${nic_1_name:-br1}
 test -d "${vm_location}" || mkdir -v -p "${vm_location}"
 test -d "${vm_image_dir}" || mkdir -v -p "${vm_image_dir}"
 
-main $@
+main "$@"

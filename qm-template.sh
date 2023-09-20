@@ -2,7 +2,40 @@
 # https://pve.proxmox.com/wiki/Cloud-Init_Support
 
 set -o errexit
+set -o nounset
 set -o pipefail
+
+# import shlib
+this=$(readlink -f "$0")
+. "$(dirname "$this")"/shlib.sh
+
+usage() {
+    cat <<EOF
+
+Usage:
+    $(basename $this) [-h|--help]
+    $(basename $this) [vm-image-filter]
+
+ENVs:
+    You can use some of the ENVs to override the default settings,
+    the available ENVs are as follows:
+
+    vm_storage, vm_image_dir
+
+    The default value for these ENVs can be seen at the end of the script
+
+Examples:
+    $(basename $this) ubuntu
+    $(basename $this) bookworm
+
+    with ENVs,
+
+    vm_storage=apps $(basename $this) ubuntu
+    vm_storage=apps vm_image_dir=/tank/vm/images $(basename $this) bookworm
+
+EOF
+    exit 0
+}
 
 qm_template() {
     # create a new vm with virtio scsi controller
@@ -27,9 +60,8 @@ qm_template() {
 main() {
     local vm_image_list=(
         $(
-            find ${vm_image_dir} -type f | 
-                grep -E '\.(qcow2|img)$' |
-                grep -E ''${vm_image_filter}'' | sort
+            find ${vm_image_dir} -type f |
+                grep -E '\.(qcow2|img)$' | grep -E ''${vm_image_filter}'' | sort
         )
     )
 
@@ -68,15 +100,27 @@ main() {
         if [ ! -f "/etc/pve/qemu-server/${vm_id}.conf" ]; then
             break
         else
-            echo "vm_id: $vm_id is already in use..."
+            log_warning "vm_id: $vm_id is already in use..."
         fi
     done
 
     qm_template
 }
 
+require_command qm
+
+if [ "$#" -gt 0 ]; then
+    if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+        usage
+    fi
+
+    vm_image_filter="$1"
+else
+    vm_image_filter=""
+fi
+
 vm_storage=${vm_storage:-tank}
 vm_image_dir="/${vm_storage}/vm/images"
 test -d "$vm_image_dir" || mkdir -p "$vm_image_dir"
 
-main $@
+main "$@"
