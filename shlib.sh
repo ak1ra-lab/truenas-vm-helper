@@ -167,6 +167,17 @@ http_download_wget() {
     wget -q --header "$header" -O "$local_file" "$source_url"
   fi
 }
+http_download_aria2() {
+  local_file=$1
+  source_url=$2
+  header=$3
+  local_file_dir=${local_file%/*}
+  if [ -z "$header" ]; then
+    aria2c -q -d "$local_file_dir" "$source_url"
+  else
+    aria2c -q --header "$header" -d "$local_file_dir" "$source_url"
+  fi
+}
 http_download() {
   log_debug "http_download $2"
   if is_command curl; then
@@ -174,6 +185,9 @@ http_download() {
     return
   elif is_command wget; then
     http_download_wget "$@"
+    return
+  elif is_command aria2c; then
+    http_download_aria2 "$@"
     return
   fi
   log_crit "http_download unable to find wget or curl"
@@ -194,7 +208,7 @@ is_command() {
   command -v "$1" >/dev/null
 }
 log_prefix() {
-  echo "$0"
+  echo "[$(date_iso8601)][$0]"
 }
 _logp=6
 log_set_priority() {
@@ -222,19 +236,35 @@ log_tag() {
 }
 log_debug() {
   log_priority 7 || return 0
-  echoerr "$(log_prefix)" "$(log_tag 7)" "$@"
+  echoerr "$(log_prefix)[$(log_tag 7)]" "$@"
 }
 log_info() {
   log_priority 6 || return 0
-  echoerr "$(log_prefix)" "$(log_tag 6)" "$@"
+  echoerr "$(log_prefix)[$(log_tag 6)]" "$@"
+}
+log_notice() {
+  log_priority 5 || return 0
+  echoerr "$(log_prefix)[$(log_tag 6)]" "$@"
+}
+log_warning() {
+  log_priority 4 || return 0
+  echoerr "$(log_prefix)[$(log_tag 6)]" "$@"
 }
 log_err() {
   log_priority 3 || return 0
-  echoerr "$(log_prefix)" "$(log_tag 3)" "$@"
+  echoerr "$(log_prefix)[$(log_tag 3)]" "$@"
 }
 log_crit() {
   log_priority 2 || return 0
-  echoerr "$(log_prefix)" "$(log_tag 2)" "$@"
+  echoerr "$(log_prefix)[$(log_tag 2)]" "$@"
+}
+log_alert() {
+  log_priority 1 || return 0
+  echoerr "$(log_prefix)[$(log_tag 6)]" "$@"
+}
+log_emerg() {
+  log_priority 0 || return 0
+  echoerr "$(log_prefix)[$(log_tag 6)]" "$@"
 }
 mktmpdir() {
   test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
