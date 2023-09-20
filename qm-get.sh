@@ -1,8 +1,6 @@
 #! /bin/sh
 
 set -o errexit
-set -o nounset
-set -o pipefail
 
 # import shlib
 this=$(readlink -f "$0")
@@ -74,7 +72,7 @@ qm_get() {
 }
 
 main() {
-    local vm_storage=${vm_storage:-apps}
+    local vm_storage=${vm_storage:-tank}
     local vm_image_dir="${vm_image_dir:-/${vm_storage}/vm/images}"
     test -d "$vm_image_dir" || mkdir -p "$vm_image_dir"
 

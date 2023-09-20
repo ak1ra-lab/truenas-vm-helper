@@ -28,7 +28,8 @@ qm_template() {
 main() {
     local vm_image_list=(
         $(
-            find ${vm_image_dir} -type f -name '*.qcow2' |
+            find ${vm_image_dir} -type f | 
+                grep -E '\.(qcow2|img)$' |
                 grep -E ''${vm_image_filter}'' | sort
         )
     )
@@ -74,7 +75,7 @@ main() {
     qm_template
 }
 
-vm_storage=${vm_storage:-apps}
+vm_storage=${vm_storage:-tank}
 vm_image_dir="/${vm_storage}/vm/images"
 test -d "$vm_image_dir" || mkdir -p "$vm_image_dir"
 
