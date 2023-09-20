@@ -2,7 +2,6 @@
 # https://pve.proxmox.com/wiki/Cloud-Init_Support
 
 set -o errexit
-set -o nounset
 set -o pipefail
 
 qm_template() {
@@ -54,6 +53,7 @@ main() {
     done
 
     local vm_id=""
+    local vm_id_input=""
     while [ true ]; do
         read -p "please input vm_id (q to quit): " vm_id_input
         if [ "$vm_id_input" == "q" ] || [ "$vm_id_input" == "quit" ]; then
@@ -65,11 +65,11 @@ main() {
         fi
 
         vm_id="${vm_id_input}"
-        if [ -f "/etc/pve/qemu-server/${vm_id}.conf" ]; then
+        if [ ! -f "/etc/pve/qemu-server/${vm_id}.conf" ]; then
+            break
+        else
             echo "vm_id: $vm_id is already in use..."
-            continue
         fi
-
     done
 
     qm_template
