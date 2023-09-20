@@ -1,35 +1,19 @@
 #! /bin/bash
 # https://pve.proxmox.com/wiki/Cloud-Init_Support
 
-# https://cloud.debian.org/images/cloud/bookworm/
-vm_image_bookworm_url="https://cloud.debian.org/images/cloud/bookworm/20230910-1499/debian-12-genericcloud-amd64-20230910-1499.qcow2"
+set -o errexit
+set -o nounset
+set -o pipefail
 
-# https://cloud-images.ubuntu.com/jammy/
-vm_image_jammy_url="https://cloud-images.ubuntu.com/jammy/20230828/jammy-server-cloudimg-amd64.img"
-
-# https://cdn.amazonlinux.com/os-images/latest/
-vm_image_amazon_linux_2_url="https://cdn.amazonlinux.com/os-images/2.0.20230906.0/kvm/amzn2-kvm-2.0.20230906.0-x86_64.xfs.gpt.qcow2"
-
-# https://download.opensuse.org/repositories/Cloud:/Images:/
-vm_image_opensuse_leap_url="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.5/images/openSUSE-Leap-15.5.x86_64-1.0.0-NoCloud-Build1.79.qcow2"
-
-# https://gitlab.archlinux.org/archlinux/arch-boxes
-vm_image_archlinux_url="https://geo.mirror.pkgbuild.com/images/v20230901.175781/Arch-Linux-x86_64-cloudimg-20230901.175781.qcow2"
-
-main() {
-    # download the image
-    if [ ! -f "$vm_image" ]; then
-        wget -c -P "$vm_image_dir" "$vm_image_url"
-    fi
-
+qm_template() {
     # create a new vm with virtio scsi controller
-    qm create "$vm_id" --name "$vm_image_name_fqdn" --memory 1024 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci
+    qm create "$vm_id" --name "$vm_name" --memory 1024 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci
 
-    # import the downloaded disk to the $vm_disk_storage storage (eg: local-lvm), attaching it as a scsi drive
-    qm set "$vm_id" --scsi0 ${vm_disk_storage}:0,import-from=${vm_image}
+    # import the downloaded disk to the $vm_storage vm_storage (eg: local-lvm), attaching it as a scsi drive
+    qm set "$vm_id" --scsi0 ${vm_storage}:0,import-from=${vm_image}
 
     # add cloud-init cd-rom drive
-    qm set "$vm_id" --ide2 ${vm_disk_storage}:cloudinit
+    qm set "$vm_id" --ide0 ${vm_storage}:cloudinit
 
     # to be able to boot directly from the cloud-init image, set the boot parameter to order=scsi0 to restrict bios to boot from this disk only.
     qm set "$vm_id" --boot order=scsi0
@@ -41,22 +25,57 @@ main() {
     qm template "$vm_id"
 }
 
-vm_id=${vm_id:-9000}
-if [ -f "/etc/pve/qemu-server/${vm_id}.conf" ]; then
-    echo "vm_id: $vm_id is already in use..."
-    exit 1
-fi
+main() {
+    local vm_image_list=(
+        $(
+            find ${vm_image_dir} -type f -name '*.qcow2' |
+                grep -E ''${vm_image_filter}'' | sort
+        )
+    )
 
-vm_disk_storage=${vm_disk_storage:-apps}
+    local vm_image=""
+    local vm_name=""
+    while [ true ]; do
+        for idx in ${!vm_image_list[@]}; do
+            printf "%3d | %s\n" "$((idx))" "${vm_image_list[idx]#${vm_image_dir}/}"
+        done
 
-vm_images_base_dir="/${vm_disk_storage}/vm/images"
-test -d "$vm_images_base_dir" || mkdir -p "$vm_images_base_dir"
+        read -p "please select vm_image (q to quit): " choice
+        if [ "$choice" == "q" ] || [ "$choice" == "quit" ]; then
+            exit 0
+        fi
+        echo $choice | grep -qE '[0-9][0-9]?'
+        if [ $? -eq 0 ]; then
+            vm_image="${vm_image_list[$((choice))]}"
+            vm_name="$(basename $vm_image | sed -E -e 's%[\._]+%-%g')"
+            break
+        fi
+    done
 
-vm_image_url="${vm_image_url:-$vm_image_bookworm_url}"
-vm_image_dir="${vm_images_base_dir}/$(echo ${vm_image_url%/*} | sed -E -e 's%^https?://%%' -e 's%:%%g')"
-vm_image_name="${vm_image_url##*/}"
-vm_image_name_fqdn="$(echo ${vm_image_name%.*} | sed -E -e 's%[\._]%%g')"
+    local vm_id=""
+    while [ true ]; do
+        read -p "please input vm_id (q to quit): " vm_id_input
+        if [ "$vm_id_input" == "q" ] || [ "$vm_id_input" == "quit" ]; then
+            exit 0
+        fi
+        if ! echo "${vm_id_input}" | grep -qE '[1-9][0-9]*'; then
+            echo "vm_id can only be numbers."
+            continue
+        fi
 
-vm_image="${vm_image_dir}/${vm_image_name}"
+        vm_id="${vm_id_input}"
+        if [ -f "/etc/pve/qemu-server/${vm_id}.conf" ]; then
+            echo "vm_id: $vm_id is already in use..."
+            continue
+        fi
+
+    done
+
+    qm_template
+}
+
+vm_storage=${vm_storage:-apps}
+vm_image_dir="/${vm_storage}/vm/images"
+test -d "$vm_image_dir" || mkdir -p "$vm_image_dir"
 
 main $@
