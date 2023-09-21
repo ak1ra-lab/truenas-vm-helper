@@ -39,7 +39,7 @@ EOF
 
 qm_template() {
     # create a new vm with virtio scsi controller
-    qm create "$vm_id" --name "$vm_name" --memory 1024 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci
+    qm create "$vm_id" --name "$vm_name" --cores 4 --balloon 1024 --memory 16384 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci
 
     # import the downloaded disk to the $vm_storage vm_storage (eg: local-lvm), attaching it as a scsi drive
     qm set "$vm_id" --scsi0 ${vm_storage}:0,import-from=${vm_image}
