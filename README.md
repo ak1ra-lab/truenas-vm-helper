@@ -25,13 +25,13 @@ add_nic_1=false
 nic_1_name=br1
 EOF
 
-cat > qm-get.sh<<'EOF'
+cat > qm-get.env.sh<<'EOF'
 vm_storage=apps
 zfs_mountpoint=/
 vm_image_dir=${zfs_mountpoint}${vm_storage}/vm/images
 EOF
 
-cat > qm-template.sh<<'EOF'
+cat > qm-template.env.sh<<'EOF'
 vm_storage=apps
 zfs_mountpoint=/
 vm_image_dir=${zfs_mountpoint}${vm_storage}/vm/images
