@@ -175,9 +175,13 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
-## Custom settings
+## custom settings
 seed.iso
 images/
 examples/
 network-config
 !network-config.yaml.j2
+# *.env.sh
+qm-get.env.sh
+qm-template.env.sh
+vm-create.env.sh

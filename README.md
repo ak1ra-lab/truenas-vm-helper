@@ -1,19 +1,44 @@
 
 # truenas-vm-helper
 
-Helper script to create VM on TrueNAS SCALE using cloud-init with Debian/Ubuntu cloud images,
-thanks to [Setting up a VM on TrueNAS Scale using cloud-init][truenas-cloud-init]
+Helper script to create VM on TrueNAS SCALE and Proxmox VE using cloud-init with Debian/Ubuntu cloud images,
+thanks to [Setting up a VM on TrueNAS Scale using cloud-init][truenas-cloud-init] and [Proxmox Wiki - Cloud-Init Support][pve-cloud-init].
 
-## How to use this script?
+## Quick start
 
-* Configure the `VM_DATASET` variable in `vm-create.sh` to be the ZFS Dataset that you intend to use to store the VMs.
-* Download raw format cloud images (eg. [debian][debian-cloud-images], [ubuntu][ubuntu-cloud-images]) for each operating system to the `$VM_IMAGE_DIR` directory.
-    * Theoretically all **raw** OS cloud images are supported, but I haven't tested them all.
-    * `wget -c -x -P /mnt/apps/vm/images https://cloud.debian.org/images/cloud/bookworm/20230723-1450/debian-12-generic-amd64-20230723-1450.raw`
-* Customize the `user-data` and `meta-data` in the `cloud-init/` directory.
-* Execute `./vm-create.sh`, select `VM_IMAGE`, enter `VM_NAME`,
-    * Note that `VM_NAME` can only be (lowercase) letters, numbers and underscores.
+```shell
+# git clone the source code
+test -d ~/code/github.com/ak1ra-lab || mkdir -p ~/code/github.com/ak1ra-lab
+cd ~/code/github.com/ak1ra-lab
+git clone https://github.com/ak1ra-lab/truenas-vm-helper.git
+cd ~/code/github.com/ak1ra-lab/truenas-vm-helper
 
+# Optional, create a file ending with .env.sh suffix to override the default environment variables in the script
+cat > vm-create.env.sh<<'EOF'
+vm_storage=apps
+zfs_mountpoint=/mnt/
+vm_seed_dir=${zfs_mountpoint}${vm_storage}/vm/seed
+vm_images_dir=${zfs_mountpoint}${vm_storage}/vm/images
+add_nic_0=true
+nic_0_name=br0
+add_nic_1=false
+nic_1_name=br1
+EOF
+
+cat > qm-get.sh<<'EOF'
+vm_storage=apps
+zfs_mountpoint=/
+vm_image_dir=${zfs_mountpoint}${vm_storage}/vm/images
+EOF
+
+cat > qm-template.sh<<'EOF'
+vm_storage=apps
+zfs_mountpoint=/
+vm_image_dir=${zfs_mountpoint}${vm_storage}/vm/images
+EOF
+```
+
+---
 ## [How to use `cloud-init` in NoCloud DataSource?][cloud-init-nocloud]
 
 > The data source NoCloud allows the user to provide user-data and meta-data to the instance without running a network service (or even without having a network at all).
@@ -43,3 +68,4 @@ The basic process is,
 [cloud-init-bullseye]: https://cloudinit.readthedocs.io/en/20.4.1/
 [cloud-init-bookworm]: https://cloudinit.readthedocs.io/en/22.4.2/index.html
 [cloud-init-jammy]: https://cloudinit.readthedocs.io/en/23.1.2/index.html
+[pve-cloud-init]: https://pve.proxmox.com/wiki/Cloud-Init_Support

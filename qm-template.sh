@@ -8,6 +8,9 @@ set -o pipefail
 # import shlib
 this=$(readlink -f "$0")
 . "$(dirname "$this")"/shlib.sh
+# import .env.sh
+dot_env_sh="${this%.sh}.env.sh"
+test -f "$dot_env_sh" && . "$dot_env_sh"
 
 usage() {
     cat <<EOF
@@ -31,7 +34,7 @@ Examples:
     with ENVs,
 
     vm_storage=apps $(basename $this) ubuntu
-    vm_storage=apps vm_image_dir=/tank/vm/images $(basename $this) bookworm
+    vm_storage=apps vm_image_dir=/apps/vm/images $(basename $this) bookworm
 
 EOF
     exit 0
@@ -119,8 +122,9 @@ else
     vm_image_filter=""
 fi
 
-vm_storage=${vm_storage:-tank}
-vm_image_dir="/${vm_storage}/vm/images"
+vm_storage=${vm_storage:-apps}
+zfs_mountpoint=${zfs_mountpoint:-/}
+vm_image_dir="${vm_image_dir:-${zfs_mountpoint}${vm_storage}/vm/images}"
 test -d "$vm_image_dir" || mkdir -p "$vm_image_dir"
 
 main "$@"

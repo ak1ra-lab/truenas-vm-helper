@@ -5,6 +5,9 @@ set -o errexit
 # import shlib
 this=$(readlink -f "$0")
 . "$(dirname "$this")"/shlib.sh
+# import .env.sh
+dot_env_sh="${this%.sh}.env.sh"
+test -f "$dot_env_sh" && . "$dot_env_sh"
 
 usage() {
     cat <<EOF
@@ -35,7 +38,7 @@ Examples:
 
     with ENVs,
 
-    vm_image_dir=/tank/vm/images $(basename $this) https://cloud.debian.org/images/cloud/bookworm/20230910-1499/debian-12-genericcloud-amd64-20230910-1499.qcow2
+    vm_image_dir=/apps/vm/images $(basename $this) https://cloud.debian.org/images/cloud/bookworm/20230910-1499/debian-12-genericcloud-amd64-20230910-1499.qcow2
 
 EOF
     exit 0
@@ -72,19 +75,6 @@ qm_get() {
 }
 
 main() {
-    local vm_storage=${vm_storage:-tank}
-    local vm_image_dir="${vm_image_dir:-/${vm_storage}/vm/images}"
-    test -d "$vm_image_dir" || mkdir -p "$vm_image_dir"
-
-    if [ "$#" -gt 0 ]; then
-        if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-            usage
-        fi
-        local vm_image_url="$1"
-    else
-        local vm_image_url=""
-    fi
-
     if ! echo "$vm_image_url" | grep -qE '^https?://'; then
         log_err "vm_image_url: $vm_image_url not in HTTP format..."
         usage
@@ -127,5 +117,19 @@ main() {
 
     qm_get "$vm_image_url" "$vm_image_checksum_url" "$vm_image_checksum_algo"
 }
+
+vm_storage=${vm_storage:-apps}
+zfs_mountpoint=${zfs_mountpoint:-/}
+vm_image_dir="${vm_image_dir:-${zfs_mountpoint}${vm_storage}/vm/images}"
+test -d "$vm_image_dir" || mkdir -p "$vm_image_dir"
+
+if [ "$#" -gt 0 ]; then
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        usage
+    fi
+    vm_image_url="$1"
+else
+    vm_image_url=""
+fi
 
 main "$@"

@@ -11,6 +11,9 @@ set -o pipefail
 # import shlib
 this=$(readlink -f "$0")
 . "$(dirname "$this")"/shlib.sh
+# import .env.sh
+dot_env_sh="${this%.sh}.env.sh"
+test -f "$dot_env_sh" && . "$dot_env_sh"
 
 usage() {
     cat <<EOF
@@ -23,7 +26,7 @@ ENVs:
     You can use some of the ENVs to override the default settings,
     the available ENVs are as follows:
 
-    vm_dataset, vm_location, vm_image_dir,
+    vm_storage, zfs_mountpoint, vm_seed_dir, vm_images_dir,
     add_nic_0, nic_0_name, add_nic_1, nic_1_name
 
     The default value for these ENVs can be seen at the end of the script
@@ -34,7 +37,7 @@ Examples:
 
     with ENVs,
 
-    vm_dataset=/mnt/tank $(basename $this) ubuntu
+    vm_storage=/mnt/tank $(basename $this) ubuntu
     add_nic_0=true nic_0_name=br0 $(basename $this) bookworm
 
 EOF
@@ -136,7 +139,7 @@ vm_create() {
 main() {
     local vm_image_list=(
         $(
-            find ${vm_image_dir} -type f -name '*.raw' |
+            find ${vm_images_dir} -type f -name '*.raw' |
                 grep -vE '(genericcloud|nocloud)' | grep -E ''${vm_image_filter}'' | sort
         )
     )
@@ -144,7 +147,7 @@ main() {
     local vm_image=""
     while [ true ]; do
         for idx in ${!vm_image_list[@]}; do
-            printf "%3d | %s\n" "$((idx))" "${vm_image_list[idx]#${vm_image_dir}/}"
+            printf "%3d | %s\n" "$((idx))" "${vm_image_list[idx]#${vm_images_dir}/}"
         done
 
         read -p "please select vm_image (q to quit): " choice
@@ -173,13 +176,13 @@ main() {
         fi
     done
 
-    local vm_zvol="/dev/zvol/${vm_dataset}/${vm_name}"
+    local vm_zvol="/dev/zvol/${vm_storage}/${vm_name}"
     if [ -b "${vm_zvol}" ]; then
         echo "zvol: ${vm_zvol} already exist, exit..."
         exit 1
     fi
 
-    local vm_dir="${vm_location}/${vm_name}"
+    local vm_dir="${vm_seed_dir}/${vm_name}"
     test -d "${vm_dir}" || mkdir -v -p "${vm_dir}"
 
     local vm_seed="${vm_dir}/seed.iso"
@@ -201,9 +204,10 @@ else
     vm_image_filter=""
 fi
 
-vm_dataset=${vm_dataset:-apps/vm}
-vm_location=${vm_location:-/mnt/${vm_dataset}/machines}
-vm_image_dir=${vm_image_dir:-/mnt/${vm_dataset}/images}
+vm_storage=${vm_storage:-apps}
+zfs_mountpoint=${zfs_mountpoint:-/mnt/}
+vm_seed_dir=${vm_seed_dir:-${zfs_mountpoint}${vm_storage}/vm/seed}
+vm_images_dir=${vm_images_dir:-${zfs_mountpoint}${vm_storage}/vm/images}
 
 add_nic_0=${add_nic_0:-true}
 nic_0_name=${nic_0_name:-br0}
@@ -211,7 +215,7 @@ nic_0_name=${nic_0_name:-br0}
 add_nic_1=${add_nic_1:-false}
 nic_1_name=${nic_1_name:-br1}
 
-test -d "${vm_location}" || mkdir -v -p "${vm_location}"
-test -d "${vm_image_dir}" || mkdir -v -p "${vm_image_dir}"
+test -d "${vm_seed_dir}" || mkdir -v -p "${vm_seed_dir}"
+test -d "${vm_images_dir}" || mkdir -v -p "${vm_images_dir}"
 
 main "$@"
